@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Tugas - Aplikasi To-Do List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-3xl">
+        <!-- Header with name input -->
+        <header class="mb-8 text-center">
+            <h1 class="text-3xl font-bold text-indigo-800 mb-2">Daftar Tugas Harian</h1>
+            <div class="bg-white p-4 rounded-lg shadow-md">
+                <div id="greeting-container" class="mb-4 hidden">
+                    <p class="text-xl font-semibold text-indigo-600">Halo, <span id="user-name" class="text-indigo-800"></span>! 👋</p>
+                    <p class="text-gray-600">Apa yang ingin kamu kerjakan hari ini?</p>
+                </div>
+                <div id="name-input-container" class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="name-input" placeholder="Masukkan nama kamu" 
+                           class="flex-grow px-4 py-2 border border-indigo-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <button id="save-name-btn" 
+                            class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                        Simpan Nama
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main todo app -->
+        <main class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- Add task form -->
+            <div class="p-6 border-b border-gray-200">
+                <form id="task-form" class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="task-input" placeholder="Tulis tugas baru..." 
+                           class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <select id="priority-select" 
+                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="low">Prioritas Rendah</option>
+                        <option value="medium" selected>Prioritas Sedang</option>
+                        <option value="high">Prioritas Tinggi</option>
+                    </select>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Tambah
+                    </button>
+                </form>
+            </div>
+
+            <!-- Task filters -->
+            <div class="px-6 py-3 bg-gray-50 flex flex-wrap gap-2">
+                <button data-filter="all" class="filter-btn active px-3 py-1 bg-indigo-600 text-white rounded-full text-sm">
+                    Semua
+                </button>
+                <button data-filter="high" class="filter-btn px-3 py-1 border border-indigo-600 text-indigo-600 rounded-full text-sm">
+                    Tinggi
+                </button>
+                <button data-filter="medium" class="filter-btn px-3 py-1 border border-indigo-600 text-indigo-600 rounded-full text-sm">
+                    Sedang
+                </button>
+                <button data-filter="low" class="filter-btn px-3 py-1 border border-indigo-600 text-indigo-600 rounded-full text-sm">
+                    Rendah
+                </button>
+                <button data-filter="active" class="filter-btn px-3 py-1 border border-indigo-600 text-indigo-600 rounded-full text-sm">
+                    Aktif
+                </button>
+                <button data-filter="completed" class="filter-btn px-3 py-1 border border-indigo-600 text-indigo-600 rounded-full text-sm">
+                    Selesai
+                </button>
+            </div>
+
+            <!-- Task list -->
+            <div class="divide-y divide-gray-200">
+                <ul id="task-list" class="p-4">
+                    <!-- Tasks will be added here dynamically -->
+                    <li class="text-center py-8 text-gray-500" id="empty-state">
+                        <i class="fas fa-clipboard-list text-4xl mb-2 text-indigo-300"></i>
+                        <p>Tidak ada tugas yang tercatat</p>
+                        <p class="text-sm">Tambahkan tugas pertamamu!</p>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Stats -->
+            <div class="px-6 py-3 bg-gray-50 flex justify-between text-sm text-gray-600">
+                <span id="task-count">0 tugas tersisa</span>
+                <button id="clear-completed" class="text-indigo-600 hover:text-indigo-800">Hapus yang selesai</button>
+            </div>
+        </main>
+
+        <footer class="mt-8 text-center text-gray-500 text-sm">
+            <p>© 2025 project Aplikasi Daftar Tugas | created by minji</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const nameInput = document.getElementById('name-input');
+            const saveNameBtn = document.getElementById('save-name-btn');
+            const greetingContainer = document.getElementById('greeting-container');
+            const userNameSpan = document.getElementById('user-name');
+            const nameInputContainer = document.getElementById('name-input-container');
+            const taskForm = document.getElementById('task-form');
+            const taskInput = document.getElementById('task-input');
+            const prioritySelect = document.getElementById('priority-select');
+            const taskList = document.getElementById('task-list');
+            const emptyState = document.getElementById('empty-state');
+            const filterButtons = document.querySelectorAll('.filter-btn');
+            const taskCountSpan = document.getElementById('task-count');
+            const clearCompletedBtn = document.getElementById('clear-completed');
+            
+            // State
+            let currentFilter = 'all';
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            let userName = localStorage.getItem('userName') || '';
+            
+            // Initialize
+            if (userName) {
+                showGreeting(userName);
+            }
+            renderTasks();
+            updateTaskCount();
+            
+            // Event Listeners
+            saveNameBtn.addEventListener('click', saveUserName);
+            taskForm.addEventListener('submit', addTask);
+            clearCompletedBtn.addEventListener('click', clearCompletedTasks);
+            
+            filterButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    filterButtons.forEach(btn => btn.classList.remove('active', 'bg-indigo-600', 'text-white'));
+                    button.classList.add('active', 'bg-indigo-600', 'text-white');
+                    currentFilter = button.dataset.filter;
+                    renderTasks();
+                });
+            });
+            
+            // Functions
+            function saveUserName(e) {
+                e.preventDefault();
+                userName = nameInput.value.trim();
+                if (userName) {
+                    localStorage.setItem('userName', userName);
+                    showGreeting(userName);
+                }
+            }
+            
+            function showGreeting(name) {
+                userNameSpan.textContent = name;
+                greetingContainer.classList.remove('hidden');
+                nameInputContainer.classList.add('hidden');
+            }
+            
+            function addTask(e) {
+                e.preventDefault();
+                const taskText = taskInput.value.trim();
+                const priority = prioritySelect.value;
+                
+                if (taskText) {
+                    const newTask = {
+                        id: Date.now(),
+                        text: taskText,
+                        completed: false,
+                        priority: priority,
+                        createdAt: new Date().toISOString()
+                    };
+                    
+                    tasks.unshift(newTask);
+                    saveTasks();
+                    renderTasks();
+                    taskInput.value = '';
+                    updateTaskCount();
+                }
+            }
+            
+            function renderTasks() {
+                taskList.innerHTML = '';
+                
+                let filteredTasks = [...tasks];
+                
+                // Apply filter
+                if (currentFilter === 'active') {
+                    filteredTasks = filteredTasks.filter(task => !task.completed);
+                } else if (currentFilter === 'completed') {
+                    filteredTasks = filteredTasks.filter(task => task.completed);
+                } else if (currentFilter !== 'all') {
+                    filteredTasks = filteredTasks.filter(task => task.priority === currentFilter);
+                }
+                
+                if (filteredTasks.length === 0) {
+                    taskList.appendChild(emptyState);
+                    emptyState.classList.remove('hidden');
+                } else {
+                    emptyState.classList.add('hidden');
+                    filteredTasks.forEach(task => {
+                        const taskItem = document.createElement('li');
+                        taskItem.className = `task-item mb-2 p-3 bg-white rounded-lg shadow-sm flex items-start priority-${task.priority}`;
+                        taskItem.dataset.id = task.id;
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'mt-1 mr-3';
+                        checkbox.checked = task.completed;
+                        checkbox.addEventListener('change', () => toggleTaskComplete(task.id));
+                        
+                        const taskText = document.createElement('span');
+                        taskText.className = `flex-grow ${task.completed ? 'task-completed' : ''}`;
+                        taskText.textContent = task.text;
+                        
+                        const priorityBadge = document.createElement('span');
+                        priorityBadge.className = 'text-xs px-2 py-1 rounded-full ml-2 ';
+                        if (task.priority === 'high') {
+                            priorityBadge.classList.add('bg-red-100', 'text-red-800');
+                            priorityBadge.textContent = 'Tinggi';
+                        } else if (task.priority === 'medium') {
+                            priorityBadge.classList.add('bg-yellow-100', 'text-yellow-800');
+                            priorityBadge.textContent = 'Sedang';
+                        } else {
+                            priorityBadge.classList.add('bg-green-100', 'text-green-800');
+                            priorityBadge.textContent = 'Rendah';
+                        }
+                        
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'ml-2 text-gray-400 hover:text-red-500';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                        deleteBtn.addEventListener('click', () => deleteTask(task.id));
+                        
+                        taskText.appendChild(priorityBadge);
+                        taskItem.appendChild(checkbox);
+                        taskItem.appendChild(taskText);
+                        taskItem.appendChild(deleteBtn);
+                        
+                        taskList.appendChild(taskItem);
+                    });
+                }
+            }
+            
+            function toggleTaskComplete(id) {
+                tasks = tasks.map(task => {
+                    if (task.id === id) {
+                        return { ...task, completed: !task.completed };
+                    }
+                    return task;
+                });
+                saveTasks();
+                updateTaskCount();
+            }
+            
+            function deleteTask(id) {
+                tasks = tasks.filter(task => task.id !== id);
+                saveTasks();
+                renderTasks();
+                updateTaskCount();
+            }
+            
+            function clearCompletedTasks() {
+                tasks = tasks.filter(task => !task.completed);
+                saveTasks();
+                renderTasks();
+                updateTaskCount();
+            }
+            
+            function saveTasks() {
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+            
+            function updateTaskCount() {
+                const activeTasks = tasks.filter(task => !task.completed).length;
+                taskCountSpan.textContent = `${activeTasks} tugas tersisa`;
+            }
+        });
+    </script>
+</body>
+</html>
